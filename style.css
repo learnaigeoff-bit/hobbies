@@ -1,4 +1,3 @@
-
 /* --- Cozy Earth & Editorial Theme --- */
 * { 
   box-sizing: border-box; 
@@ -103,14 +102,4 @@ footer {
   padding: 30px; 
   color: #736e68; 
   font-size: 0.85rem; 
-}
-/* Link Styling */
-main a {
-  color: #b85d33;
-  text-decoration: underline;
-  font-weight: 500;
-}
-
-main a:hover {
-  color: #243029;
 }
