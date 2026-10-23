@@ -15,7 +15,34 @@
     
     main { max-width: 800px; margin: 40px auto; padding: 0 20px; }
     section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
-    h1 { color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+    h1 { color: #2c3e50; margin-bottom: 20px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+
+    /* Profile Section Layout */
+    .profile-container {
+      display: flex;
+      gap: 25px;
+      align-items: center;
+      flex-wrap: wrap;
+    }
+
+    .profile-pic {
+      width: 150px;
+      height: 150px;
+      border-radius: 50%;
+      object-fit: cover;
+      border: 3px solid #3498db;
+      background-color: #eee;
+    }
+
+    .bio-content {
+      flex: 1;
+      min-width: 250px;
+    }
+
+    .bio-content p {
+      margin-bottom: 12px;
+    }
+
     footer { text-align: center; padding: 20px; color: #7f8c8d; font-size: 0.9rem; }
   </style>
 </head>
@@ -38,8 +65,16 @@
   <main>
     <section>
       <h1>About Me</h1>
-      <p>Hello and welcome to my site! This is a central hub where I share my hobbies, projects, and personal interests—ranging from music and fantasy sports to family history and the outdoors.</p>
-      <p style="margin-top: 15px;">Use the menu above to explore each area!</p>
+      <div class="profile-container">
+        <!-- Profile Picture (See instructions below on how to add your photo) -->
+        <img src="profile.jpg" alt="Profile Photo" class="profile-pic">
+        
+        <div class="bio-content">
+          <p>Hello! Welcome to my personal website. This is where I bring together all of my favorite hobbies, side projects, and personal research.</p>
+          <p>Whether I'm laying down a bassline, analyzing cycling stats, tracking fantasy sports, exploring family history, or spending time outdoors in the garden and on walks, you can read all about it right here.</p>
+          <p>Feel free to use the menu above to explore each section!</p>
+        </div>
+      </div>
     </section>
   </main>
 
