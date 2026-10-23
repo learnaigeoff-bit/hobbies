@@ -3,131 +3,41 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>My Personal Hub</title>
+  <title>Bass Guitar | My Website</title>
   <style>
-    /* Reset & Base Styles */
-    * {
-      box-sizing: border-box;
-      margin: 0;
-      padding: 0;
-    }
-
-    body {
-      font-family: system-ui, -apple-system, sans-serif;
-      line-height: 1.6;
-      color: #333;
-      background-color: #f9f9f9;
-    }
-
-    /* Header & Navigation Menu */
-    header {
-      background-color: #1a252f;
-      padding: 1rem 0;
-      position: sticky;
-      top: 0;
-      box-shadow: 0 2px 5px rgba(0,0,0,0.1);
-    }
-
-    nav ul {
-      display: flex;
-      flex-wrap: wrap;
-      justify-content: center;
-      list-style: none;
-      gap: 15px;
-      padding: 0 10px;
-    }
-
-    nav a {
-      color: #ecf0f1;
-      text-decoration: none;
-      font-weight: 500;
-      padding: 8px 12px;
-      border-radius: 4px;
-      transition: background-color 0.2s ease;
-    }
-
-    nav a:hover {
-      background-color: #34495e;
-      color: #3498db;
-    }
-
-    /* Main Content Layout */
-    main {
-      max-width: 800px;
-      margin: 40px auto;
-      padding: 0 20px;
-    }
-
-    section {
-      background: white;
-      padding: 24px;
-      margin-bottom: 24px;
-      border-radius: 8px;
-      box-shadow: 0 1px 3px rgba(0,0,0,0.05);
-      scroll-margin-top: 80px; /* Offset for sticky menu when clicking links */
-    }
-
-    h2 {
-      color: #2c3e50;
-      border-bottom: 2px solid #ecf0f1;
-      padding-bottom: 8px;
-      margin-bottom: 12px;
-    }
-
-    footer {
-      text-align: center;
-      padding: 20px;
-      color: #7f8c8d;
-      font-size: 0.9rem;
-    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: system-ui, -apple-system, sans-serif; line-height: 1.6; color: #333; background: #f9f9f9; }
+    
+    header { background: #1a252f; padding: 1rem 0; position: sticky; top: 0; }
+    nav ul { display: flex; flex-wrap: wrap; justify-content: center; list-style: none; gap: 10px; padding: 0 10px; }
+    nav a { color: #ecf0f1; text-decoration: none; font-weight: 500; padding: 8px 12px; border-radius: 4px; }
+    nav a:hover, nav a.active { background: #34495e; color: #3498db; }
+    
+    main { max-width: 800px; margin: 40px auto; padding: 0 20px; }
+    section { background: white; padding: 30px; border-radius: 8px; box-shadow: 0 1px 3px rgba(0,0,0,0.05); }
+    h1 { color: #2c3e50; margin-bottom: 15px; border-bottom: 2px solid #ecf0f1; padding-bottom: 8px; }
+    footer { text-align: center; padding: 20px; color: #7f8c8d; font-size: 0.9rem; }
   </style>
 </head>
 <body>
 
-  <!-- Navigation Menu -->
   <header>
     <nav>
       <ul>
-        <li><a href="#bass-guitar">Bass Guitar</a></li>
-        <li><a href="#fantasy-football">Fantasy Football</a></li>
-        <li><a href="#cycling">Cobblestone Fantasy Cycling</a></li>
-        <li><a href="#ancestry">Ancestry</a></li>
-        <li><a href="#gardening">Gardening</a></li>
-        <li><a href="#walking">Walking</a></li>
+        <li><a href="index.html" class="active">Bass Guitar</a></li>
+        <li><a href="fantasy-football.html">Fantasy Football</a></li>
+        <li><a href="cycling.html">Cobblestone Fantasy Cycling</a></li>
+        <li><a href="ancestry.html">Ancestry</a></li>
+        <li><a href="gardening.html">Gardening</a></li>
+        <li><a href="walking.html">Walking</a></li>
       </ul>
     </nav>
   </header>
 
-  <!-- Page Content Sections -->
   <main>
-    <section id="bass-guitar">
-      <h2>Bass Guitar</h2>
-      <p>Welcome to the Bass Guitar section. Add your gear, favorite basslines, or tabs here!</p>
-    </section>
-
-    <section id="fantasy-football">
-      <h2>Fantasy Football</h2>
-      <p>Track your league results, team tactics, and weekly matchups here.</p>
-    </section>
-
-    <section id="cycling">
-      <h2>Cobblestone Fantasy Cycling</h2>
-      <p>Spring classics, fantasy picks, and race previews go here.</p>
-    </section>
-
-    <section id="ancestry">
-      <h2>Ancestry</h2>
-      <p>Discover family history, tree updates, and genealogical research notes.</p>
-    </section>
-
-    <section id="gardening">
-      <h2>Gardening</h2>
-      <p>Log your seasonal planting, garden updates, and harvesting results.</p>
-    </section>
-
-    <section id="walking">
-      <h2>Walking</h2>
-      <p>Share your favorite routes, trail summaries, and outdoor photos.</p>
+    <section>
+      <h1>Bass Guitar</h1>
+      <p>Welcome to the Bass Guitar section! Add your gear reviews, favorite basslines, tabs, or practise notes here.</p>
     </section>
   </main>
 
