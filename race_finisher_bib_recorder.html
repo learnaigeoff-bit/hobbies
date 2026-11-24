@@ -1,0 +1,871 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+    <!-- Apple Mobile Web App Tags for Home Screen Installation & Offline Feel -->
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <meta name="apple-mobile-web-app-title" content="Race Timer">
+    <meta name="theme-color" content="#0f172a">
+    <title>Race Finisher Bib Recorder</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Inter Font -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@500;600;700;800;900&family=JetBrains+Mono:wght@600;700;800&display=swap" rel="stylesheet">
+    
+    <script>
+        tailwind.config = {
+            darkMode: 'class',
+            theme: {
+                extend: {
+                    fontFamily: {
+                        sans: ['Inter', 'system-ui', 'sans-serif'],
+                        mono: ['JetBrains Mono', 'monospace'],
+                    }
+                }
+            }
+        }
+    </script>
+    <style>
+        /* Prevent double-tap zoom and text selection on rapid keypad taps */
+        * {
+            touch-action: manipulation;
+            -webkit-tap-highlight-color: transparent;
+        }
+        body {
+            overscroll-behavior-y: none;
+            user-select: none;
+            -webkit-user-select: none;
+        }
+        /* Custom subtle scrollbars for finisher list */
+        ::-webkit-scrollbar {
+            width: 6px;
+        }
+        ::-webkit-scrollbar-track {
+            background: transparent;
+        }
+        ::-webkit-scrollbar-thumb {
+            background: rgba(156, 163, 175, 0.5);
+            border-radius: 9999px;
+        }
+        /* Keypad press tactile animation */
+        .key-btn:active {
+            transform: scale(0.95);
+        }
+    </style>
+</head>
+<body class="bg-slate-100 text-slate-900 dark:bg-slate-950 dark:text-slate-50 h-[100dvh] flex flex-col overflow-hidden transition-colors duration-150">
+
+    <!-- Top Header & Race Clock Bar -->
+    <header class="bg-white dark:bg-slate-900 border-b-2 border-slate-300 dark:border-slate-800 px-3 py-2 sm:px-5 sm:py-3 shrink-0 shadow-sm z-10">
+        <div class="max-w-7xl mx-auto flex flex-wrap items-center justify-between gap-2">
+            
+            <!-- Brand / Status -->
+            <div class="flex items-center gap-2">
+                <div class="w-3 h-3 rounded-full bg-emerald-500 animate-pulse" title="Offline Storage Active"></div>
+                <h1 class="font-extrabold text-base sm:text-xl tracking-tight">BIB RECORDER</h1>
+                <span id="finisher-count-badge" class="ml-1 px-2.5 py-0.5 text-xs sm:text-sm font-bold rounded-full bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200">
+                    0 Finishers
+                </span>
+            </div>
+
+            <!-- Stopwatch / Race Timer Controls -->
+            <div class="flex items-center gap-2 bg-slate-100 dark:bg-slate-950 border border-slate-300 dark:border-slate-700 px-2.5 py-1.5 rounded-xl">
+                <div class="flex flex-col pr-2 border-r border-slate-300 dark:border-slate-800">
+                    <span class="text-[10px] font-bold uppercase tracking-wider text-slate-500 dark:text-slate-400 leading-none">Race Clock</span>
+                    <span id="race-clock-display" class="font-mono font-extrabold text-lg sm:text-2xl tracking-tight text-blue-600 dark:text-blue-400 leading-tight">00:00:00.0</span>
+                </div>
+                <button id="btn-timer-toggle" onclick="toggleTimer()" class="px-3 py-2 rounded-lg font-bold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition">
+                    START
+                </button>
+                <button id="btn-timer-reset" onclick="confirmResetTimer()" class="px-2.5 py-2 rounded-lg font-bold text-xs sm:text-sm bg-slate-200 hover:bg-slate-300 dark:bg-slate-800 dark:hover:bg-slate-700 text-slate-700 dark:text-slate-300 transition">
+                    RESET
+                </button>
+            </div>
+
+            <!-- Theme & Data Actions -->
+            <div class="flex items-center gap-1.5 sm:gap-2">
+                <!-- Sunlight / Dark Mode Toggle -->
+                <button id="btn-theme" onclick="toggleTheme()" class="p-2.5 rounded-xl border border-slate-300 dark:border-slate-700 bg-slate-50 dark:bg-slate-800 hover:bg-slate-200 dark:hover:bg-slate-700 font-bold text-xs sm:text-sm flex items-center gap-1.5" title="Toggle Sunlight High-Contrast / Dark Mode">
+                    <span id="theme-icon">☀️</span>
+                    <span class="hidden md:inline" id="theme-label">Sunlight Mode</span>
+                </button>
+                
+                <!-- Export / Manage Menu Button -->
+                <button onclick="openDataModal()" class="px-3 py-2.5 rounded-xl bg-slate-900 dark:bg-slate-100 text-white dark:text-slate-900 font-bold text-xs sm:text-sm shadow-sm hover:opacity-90 flex items-center gap-1.5">
+                    <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M4 16v1a3 3 0 003 3h10a3 3 0 003-3v-1m-4-4l-4 4m0 0l-4-4m4 4V4"></path></svg>
+                    <span>Export / Data</span>
+                </button>
+            </div>
+        </div>
+    </header>
+
+    <!-- Main Split Workspace: Responsive for iPhone (Vertical) and iPad (Side-by-Side) -->
+    <main class="flex-1 max-w-7xl w-full mx-auto flex flex-col md:flex-row overflow-hidden p-2 sm:p-4 gap-3 sm:gap-5">
+        
+        <!-- LEFT / TOP PANEL: Bib Display & High-Contrast Numeric Keypad -->
+        <section class="w-full md:w-[460px] lg:w-[500px] shrink-0 flex flex-col gap-2.5 sm:gap-3">
+            
+            <!-- Active Bib Number Display Box -->
+            <div class="bg-white dark:bg-slate-900 border-4 border-slate-900 dark:border-slate-600 rounded-2xl p-3 sm:p-4 flex flex-col justify-between shadow-sm relative">
+                <div class="flex items-center justify-between">
+                    <span class="text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400">Current Bib Entry</span>
+                    <span id="wall-clock-live" class="font-mono text-xs sm:text-sm font-bold text-slate-600 dark:text-slate-400">--:--:--</span>
+                </div>
+                
+                <div class="my-1 sm:my-2 flex items-center justify-between min-h-[3.5rem] sm:min-h-[4.5rem]">
+                    <div id="bib-display" class="font-mono font-black text-5xl sm:text-6xl tracking-wider text-slate-900 dark:text-white truncate">
+                        <span class="text-slate-300 dark:text-slate-700">---</span>
+                    </div>
+                    <!-- Live Duplicate Warning Indicator while typing -->
+                    <div id="live-dup-warning" class="hidden px-2.5 py-1 rounded-lg bg-amber-100 dark:bg-amber-950 border-2 border-amber-500 text-amber-800 dark:text-amber-300 text-xs font-extrabold uppercase tracking-wide animate-bounce">
+                        Already Logged!
+                    </div>
+                </div>
+            </div>
+
+            <!-- 12-Key Numeric Keypad Grid -->
+            <div class="grid grid-cols-3 gap-2 sm:gap-2.5 flex-1 min-h-[250px] sm:min-h-[310px]">
+                <button onclick="pressDigit('1')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">1</button>
+                <button onclick="pressDigit('2')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">2</button>
+                <button onclick="pressDigit('3')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">3</button>
+                
+                <button onclick="pressDigit('4')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">4</button>
+                <button onclick="pressDigit('5')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">5</button>
+                <button onclick="pressDigit('6')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">6</button>
+                
+                <button onclick="pressDigit('7')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">7</button>
+                <button onclick="pressDigit('8')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">8</button>
+                <button onclick="pressDigit('9')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">9</button>
+                
+                <!-- Clear Button -->
+                <button onclick="clearBib()" class="key-btn bg-rose-100 dark:bg-rose-950/80 hover:bg-rose-200 dark:hover:bg-rose-900 border-2 border-rose-300 dark:border-rose-800 text-rose-800 dark:text-rose-200 rounded-2xl font-extrabold text-lg sm:text-xl shadow-sm flex items-center justify-center">
+                    CLEAR
+                </button>
+                
+                <button onclick="pressDigit('0')" class="key-btn bg-white dark:bg-slate-800 hover:bg-slate-50 dark:hover:bg-slate-700 border-2 border-slate-300 dark:border-slate-700 rounded-2xl font-mono font-black text-3xl sm:text-4xl shadow-sm flex items-center justify-center">0</button>
+                
+                <!-- Backspace Button -->
+                <button onclick="backspaceBib()" aria-label="Backspace" class="key-btn bg-amber-100 dark:bg-amber-950/80 hover:bg-amber-200 dark:hover:bg-amber-900 border-2 border-amber-300 dark:border-amber-800 text-amber-900 dark:text-amber-200 rounded-2xl font-extrabold text-xl sm:text-2xl shadow-sm flex items-center justify-center">
+                    ⌫
+                </button>
+            </div>
+
+            <!-- Prominent Green RECORD / ENTER Button -->
+            <button id="btn-record" onclick="recordFinisher()" class="key-btn w-full py-4 sm:py-5 rounded-2xl bg-emerald-600 hover:bg-emerald-500 active:bg-emerald-700 text-white border-b-4 border-emerald-800 font-black text-2xl sm:text-3xl tracking-wide shadow-lg flex items-center justify-center gap-3 transition">
+                <span>RECORD FINISHER</span>
+                <svg class="w-7 h-7 sm:w-8 sm:h-8" fill="none" stroke="currentColor" stroke-width="3" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M5 13l4 4L19 7"></path></svg>
+            </button>
+        </section>
+
+        <!-- RIGHT / BOTTOM PANEL: Live Scrollable Finisher Log -->
+        <section class="flex-1 bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-800 rounded-2xl flex flex-col overflow-hidden shadow-sm">
+            
+            <!-- List Header & Quick Undo Banner -->
+            <div class="px-4 py-2.5 sm:py-3 border-b-2 border-slate-200 dark:border-slate-800 flex items-center justify-between bg-slate-50 dark:bg-slate-900/80 shrink-0">
+                <div class="flex items-center gap-2">
+                    <h2 class="font-extrabold text-sm sm:text-base uppercase tracking-wider text-slate-700 dark:text-slate-200">Recorded Finishers</h2>
+                    <span class="text-xs text-slate-500 dark:text-slate-400 hidden sm:inline">(Newest at top)</span>
+                </div>
+                
+                <!-- Quick Undo Delete Button (Visible when an item was recently deleted) -->
+                <button id="btn-undo-delete" onclick="undoLastDelete()" class="hidden px-3 py-1 rounded-lg bg-amber-500 hover:bg-amber-600 text-slate-950 font-extrabold text-xs shadow-sm flex items-center gap-1 transition">
+                    <span>↩ Undo Delete</span>
+                </button>
+            </div>
+
+            <!-- Table Column Labels -->
+            <div class="grid grid-cols-12 gap-2 px-4 py-2 bg-slate-100 dark:bg-slate-950/60 border-b border-slate-200 dark:border-slate-800 text-[11px] sm:text-xs font-extrabold uppercase tracking-wider text-slate-500 dark:text-slate-400 shrink-0">
+                <div class="col-span-2">Place</div>
+                <div class="col-span-4">Bib #</div>
+                <div class="col-span-4">Time (Race / Clock)</div>
+                <div class="col-span-2 text-right">Edit</div>
+            </div>
+
+            <!-- Scrollable Entries Container -->
+            <div id="finisher-list" class="flex-1 overflow-y-auto divide-y divide-slate-200 dark:divide-slate-800">
+                <!-- Populated dynamically via JS -->
+            </div>
+        </section>
+
+    </main>
+
+    <!-- Toast Notification Banner -->
+    <div id="toast" class="fixed bottom-5 left-1/2 -translate-x-1/2 z-50 px-5 py-3 rounded-2xl bg-slate-900 dark:bg-white text-white dark:text-slate-900 font-bold text-sm shadow-2xl border border-slate-700 dark:border-slate-300 opacity-0 pointer-events-none transition-opacity duration-200">
+        Notification
+    </div>
+
+    <!-- MODAL 1: Edit Bib Entry -->
+    <div id="modal-edit" class="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-2xl max-w-sm w-full p-5 shadow-2xl">
+            <h3 class="font-black text-xl mb-1">Edit Finisher Entry</h3>
+            <p id="edit-modal-subtitle" class="text-xs font-semibold text-slate-500 dark:text-slate-400 mb-4">Place #1 • Recorded at 10:00:00</p>
+            
+            <label class="block text-xs font-extrabold uppercase tracking-wider text-slate-600 dark:text-slate-300 mb-1.5">Bib Number</label>
+            <input id="edit-bib-input" type="text" inputmode="numeric" pattern="[0-9]*" class="w-full px-4 py-3 rounded-xl border-2 border-slate-400 dark:border-slate-600 bg-slate-50 dark:bg-slate-950 font-mono font-black text-3xl text-center focus:outline-none focus:border-blue-600 mb-4">
+            
+            <div class="flex gap-2">
+                <button onclick="closeEditModal()" class="flex-1 py-3 rounded-xl font-bold bg-slate-200 dark:bg-slate-800 text-slate-800 dark:text-slate-200">Cancel</button>
+                <button onclick="saveEditedBib()" class="flex-1 py-3 rounded-xl font-bold bg-blue-600 hover:bg-blue-700 text-white">Save Changes</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- MODAL 2: Export & Data Management -->
+    <div id="modal-data" class="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-2xl max-w-md w-full p-5 sm:p-6 shadow-2xl">
+            <div class="flex items-center justify-between mb-4">
+                <h3 class="font-black text-xl">Export & Data Management</h3>
+                <button onclick="closeDataModal()" class="p-1.5 rounded-lg bg-slate-100 dark:bg-slate-800 font-bold text-slate-500">✕</button>
+            </div>
+            
+            <div class="space-y-3">
+                <!-- Download CSV -->
+                <button onclick="exportCSV()" class="w-full py-3.5 px-4 rounded-xl bg-emerald-600 hover:bg-emerald-700 text-white font-extrabold text-base flex items-center justify-between shadow-sm">
+                    <span>Download CSV Spreadsheet</span>
+                    <span class="text-xs bg-emerald-800 px-2 py-1 rounded-md">.CSV</span>
+                </button>
+
+                <!-- Copy to Clipboard -->
+                <button onclick="copyResultsToClipboard()" class="w-full py-3.5 px-4 rounded-xl bg-blue-600 hover:bg-blue-700 text-white font-extrabold text-base flex items-center justify-between shadow-sm">
+                    <span>Copy Results to Clipboard</span>
+                    <span class="text-xs bg-blue-800 px-2 py-1 rounded-md">TEXT / CSV</span>
+                </button>
+
+                <hr class="border-slate-200 dark:border-slate-800 my-2">
+
+                <!-- Danger Zone: Clear All Data -->
+                <div id="clear-data-container" class="pt-1">
+                    <button id="btn-clear-init" onclick="armClearData()" class="w-full py-3 px-4 rounded-xl bg-rose-100 dark:bg-rose-950/70 hover:bg-rose-200 border border-rose-300 dark:border-rose-800 text-rose-700 dark:text-rose-300 font-extrabold text-sm">
+                        Clear All Recorded Finishers
+                    </button>
+                    <div id="clear-confirm-box" class="hidden bg-rose-50 dark:bg-rose-950 border-2 border-rose-500 rounded-xl p-3 text-center">
+                        <p class="text-xs font-extrabold text-rose-800 dark:text-rose-200 mb-2">Are you sure? This permanently deletes all finishers!</p>
+                        <div class="flex gap-2">
+                            <button onclick="disarmClearData()" class="flex-1 py-2 rounded-lg bg-slate-200 dark:bg-slate-800 font-bold text-xs">Cancel</button>
+                            <button onclick="executeClearAllData()" class="flex-1 py-2 rounded-lg bg-rose-600 text-white font-extrabold text-xs">Yes, Delete All</button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <p class="mt-4 text-[11px] text-slate-500 dark:text-slate-400 text-center">
+                Tip: On iPhone/iPad Safari, tap <strong>Share → Add to Home Screen</strong> for full-screen offline race timing.
+            </p>
+        </div>
+    </div>
+
+    <!-- MODAL 3: Confirm Timer Reset -->
+    <div id="modal-timer-reset" class="fixed inset-0 z-40 bg-slate-950/70 backdrop-blur-xs hidden items-center justify-center p-4">
+        <div class="bg-white dark:bg-slate-900 border-2 border-slate-300 dark:border-slate-700 rounded-2xl max-w-xs w-full p-5 shadow-2xl text-center">
+            <h3 class="font-black text-lg mb-1">Reset Race Clock?</h3>
+            <p class="text-xs text-slate-500 dark:text-slate-400 mb-4">This resets the elapsed stopwatch back to 00:00:00.0. Existing finisher records will not be deleted.</p>
+            <div class="flex gap-2">
+                <button onclick="closeTimerResetModal()" class="flex-1 py-2.5 rounded-xl font-bold bg-slate-200 dark:bg-slate-800 text-sm">Cancel</button>
+                <button onclick="executeResetTimer()" class="flex-1 py-2.5 rounded-xl font-bold bg-rose-600 text-white text-sm">Reset Clock</button>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        /**
+         * STATE MANAGEMENT & OFFLINE STORAGE KEYS
+         */
+        const STORAGE_KEYS = {
+            FINISHERS: 'race_recorder_finishers_v1',
+            TIMER: 'race_recorder_timer_v1',
+            THEME: 'race_recorder_theme_v1'
+        };
+
+        let finishers = []; // Array of { id, bib, wallTime, elapsedMs, timestamp }
+        let currentBib = '';
+        let deletedStack = []; // Supports Undo Delete
+        let editingId = null;
+
+        // Race Clock / Stopwatch State
+        let timerState = {
+            isRunning: false,
+            startTime: null,      // Epoch ms when started
+            accumulatedMs: 0      // Accumulated elapsed ms before current run
+        };
+        let timerInterval = null;
+
+        /**
+         * INITIALIZATION
+         */
+        window.addEventListener('DOMContentLoaded', () => {
+            loadTheme();
+            loadTimerState();
+            loadFinishers();
+            startLiveClocks();
+            registerOfflineServiceWorker();
+        });
+
+        // Keyboard support for external iPad keyboards or desktop testing
+        document.addEventListener('keydown', (e) => {
+            if (!document.getElementById('modal-edit').classList.contains('hidden')) {
+                if (e.key === 'Enter') saveEditedBib();
+                if (e.key === 'Escape') closeEditModal();
+                return;
+            }
+            if (!document.getElementById('modal-data').classList.contains('hidden')) {
+                if (e.key === 'Escape') closeDataModal();
+                return;
+            }
+
+            if (e.key >= '0' && e.key <= '9') {
+                pressDigit(e.key);
+            } else if (e.key === 'Backspace') {
+                backspaceBib();
+            } else if (e.key === 'Escape' || e.key === 'c' || e.key === 'C') {
+                clearBib();
+            } else if (e.key === 'Enter') {
+                e.preventDefault();
+                recordFinisher();
+            }
+        });
+
+        /**
+         * KEYPAD INPUT LOGIC
+         */
+        function pressDigit(digit) {
+            if (currentBib.length >= 7) return; // Max 7 digits for bib numbers
+            // Prevent leading zeros unless user specifically enters '0' alone
+            if (currentBib === '0') {
+                currentBib = digit;
+            } else {
+                currentBib += digit;
+            }
+            updateBibDisplay();
+        }
+
+        function backspaceBib() {
+            currentBib = currentBib.slice(0, -1);
+            updateBibDisplay();
+        }
+
+        function clearBib() {
+            currentBib = '';
+            updateBibDisplay();
+        }
+
+        function updateBibDisplay() {
+            const displayEl = document.getElementById('bib-display');
+            const dupWarningEl = document.getElementById('live-dup-warning');
+
+            if (currentBib === '') {
+                displayEl.innerHTML = '<span class="text-slate-300 dark:text-slate-700">---</span>';
+                dupWarningEl.classList.add('hidden');
+            } else {
+                displayEl.textContent = currentBib;
+                // Check if bib already exists in recorded finishers
+                const isDup = finishers.some(f => f.bib === currentBib);
+                if (isDup) {
+                    dupWarningEl.classList.remove('hidden');
+                } else {
+                    dupWarningEl.classList.add('hidden');
+                }
+            }
+        }
+
+        /**
+         * RECORD FINISHER LOGIC
+         */
+        function recordFinisher() {
+            const bibToRecord = currentBib.trim();
+            if (!bibToRecord) {
+                showToast('Enter a bib number first');
+                return;
+            }
+
+            const now = new Date();
+            const wallTimeStr = formatWallTime(now);
+            const elapsedMs = getCurrentElapsedMs();
+
+            const entry = {
+                id: Date.now().toString() + Math.random().toString(36).substring(2, 6),
+                bib: bibToRecord,
+                wallTime: wallTimeStr,
+                elapsedMs: elapsedMs,
+                elapsedFormatted: formatElapsedTime(elapsedMs),
+                timestamp: now.toISOString()
+            };
+
+            finishers.push(entry);
+            saveFinishers();
+
+            // Clear keypad immediately for rapid next entry
+            currentBib = '';
+            updateBibDisplay();
+            renderFinishersList();
+
+            // Brief visual pulse on Record button
+            const btn = document.getElementById('btn-record');
+            btn.classList.add('ring-4', 'ring-emerald-300');
+            setTimeout(() => btn.classList.remove('ring-4', 'ring-emerald-300'), 180);
+        }
+
+        /**
+         * STOPWATCH / RACE CLOCK LOGIC
+         */
+        function getCurrentElapsedMs() {
+            if (timerState.isRunning && timerState.startTime) {
+                return timerState.accumulatedMs + (Date.now() - timerState.startTime);
+            }
+            return timerState.accumulatedMs;
+        }
+
+        function toggleTimer() {
+            if (timerState.isRunning) {
+                // Pause
+                timerState.accumulatedMs += Date.now() - timerState.startTime;
+                timerState.isRunning = false;
+                timerState.startTime = null;
+            } else {
+                // Start
+                timerState.startTime = Date.now();
+                timerState.isRunning = true;
+            }
+            saveTimerState();
+            updateTimerUI();
+        }
+
+        function confirmResetTimer() {
+            document.getElementById('modal-timer-reset').classList.remove('hidden');
+            document.getElementById('modal-timer-reset').classList.add('flex');
+        }
+
+        function closeTimerResetModal() {
+            document.getElementById('modal-timer-reset').classList.add('hidden');
+            document.getElementById('modal-timer-reset').classList.remove('flex');
+        }
+
+        function executeResetTimer() {
+            timerState = {
+                isRunning: false,
+                startTime: null,
+                accumulatedMs: 0
+            };
+            saveTimerState();
+            updateTimerUI();
+            closeTimerResetModal();
+            showToast('Race clock reset to 00:00:00.0');
+        }
+
+        function updateTimerUI() {
+            const btn = document.getElementById('btn-timer-toggle');
+            const display = document.getElementById('race-clock-display');
+            
+            display.textContent = formatElapsedTime(getCurrentElapsedMs());
+
+            if (timerState.isRunning) {
+                btn.textContent = 'PAUSE';
+                btn.className = 'px-3 py-2 rounded-lg font-bold text-xs sm:text-sm bg-amber-500 hover:bg-amber-600 text-slate-950 shadow-sm transition';
+            } else {
+                btn.textContent = timerState.accumulatedMs > 0 ? 'RESUME' : 'START';
+                btn.className = 'px-3 py-2 rounded-lg font-bold text-xs sm:text-sm bg-blue-600 hover:bg-blue-700 text-white shadow-sm transition';
+            }
+        }
+
+        function startLiveClocks() {
+            const wallClockEl = document.getElementById('wall-clock-live');
+            const raceClockEl = document.getElementById('race-clock-display');
+
+            function tick() {
+                const now = new Date();
+                wallClockEl.textContent = now.toTimeString().split(' ')[0];
+                raceClockEl.textContent = formatElapsedTime(getCurrentElapsedMs());
+                requestAnimationFrame(tick);
+            }
+            requestAnimationFrame(tick);
+        }
+
+        /**
+         * FORMATTING HELPERS
+         */
+        function formatWallTime(dateObj) {
+            const hrs = String(dateObj.getHours()).padStart(2, '0');
+            const mins = String(dateObj.getMinutes()).padStart(2, '0');
+            const secs = String(dateObj.getSeconds()).padStart(2, '0');
+            const tenths = Math.floor(dateObj.getMilliseconds() / 100);
+            return `${hrs}:${mins}:${secs}.${tenths}`;
+        }
+
+        function formatElapsedTime(ms) {
+            const totalTenths = Math.floor(ms / 100);
+            const tenths = totalTenths % 10;
+            const totalSeconds = Math.floor(totalTenths / 10);
+            const seconds = totalSeconds % 60;
+            const totalMinutes = Math.floor(totalSeconds / 60);
+            const minutes = totalMinutes % 60;
+            const hours = Math.floor(totalMinutes / 60);
+
+            const hStr = String(hours).padStart(2, '0');
+            const mStr = String(minutes).padStart(2, '0');
+            const sStr = String(seconds).padStart(2, '0');
+            return `${hStr}:${mStr}:${sStr}.${tenths}`;
+        }
+
+        /**
+         * RENDER FINISHER LIST (Newest at top)
+         */
+        function renderFinishersList() {
+            const listEl = document.getElementById('finisher-list');
+            const countBadge = document.getElementById('finisher-count-badge');
+            const undoBtn = document.getElementById('btn-undo-delete');
+
+            countBadge.textContent = `${finishers.length} ${finishers.length === 1 ? 'Finisher' : 'Finishers'}`;
+
+            if (deletedStack.length > 0) {
+                undoBtn.classList.remove('hidden');
+            } else {
+                undoBtn.classList.add('hidden');
+            }
+
+            if (finishers.length === 0) {
+                listEl.innerHTML = `
+                    <div class="h-full flex flex-col items-center justify-center p-8 text-center text-slate-400 dark:text-slate-600">
+                        <svg class="w-12 h-12 mb-2 opacity-50" fill="none" stroke="currentColor" stroke-width="1.5" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M12 6v6h4.5m4.5 0a9 9 0 11-18 0 9 9 0 0118 0z"></path></svg>
+                        <p class="font-bold text-base">No finishers recorded yet</p>
+                        <p class="text-xs mt-1">Type a bib number on the keypad and tap RECORD FINISHER</p>
+                    </div>
+                `;
+                return;
+            }
+
+            // Count occurrences of each bib to flag duplicates
+            const bibCounts = {};
+            finishers.forEach(f => {
+                bibCounts[f.bib] = (bibCounts[f.bib] || 0) + 1;
+            });
+
+            // Build HTML in reverse chronological order (newest at top)
+            let html = '';
+            for (let i = finishers.length - 1; i >= 0; i--) {
+                const item = finishers[i];
+                const place = i + 1;
+                const isDuplicate = bibCounts[item.bib] > 1;
+                const isNewest = (i === finishers.length - 1);
+
+                html += `
+                    <div class="grid grid-cols-12 gap-2 items-center px-4 py-3 ${isNewest ? 'bg-emerald-50/70 dark:bg-emerald-950/30' : ''} hover:bg-slate-50 dark:hover:bg-slate-800/50 transition">
+                        <!-- Place -->
+                        <div class="col-span-2">
+                            <span class="inline-flex items-center justify-center px-2 py-1 rounded-lg font-mono font-extrabold text-xs sm:text-sm ${place <= 3 ? 'bg-slate-900 text-white dark:bg-slate-100 dark:text-slate-900' : 'bg-slate-200 dark:bg-slate-800 text-slate-700 dark:text-slate-300'}">
+                                #${place}
+                            </span>
+                        </div>
+
+                        <!-- Bib Number & Duplicate Badge -->
+                        <div class="col-span-4 flex flex-wrap items-center gap-1.5">
+                            <span class="font-mono font-black text-xl sm:text-2xl tracking-tight">${escapeHtml(item.bib)}</span>
+                            ${isDuplicate ? `<span class="px-1.5 py-0.5 rounded bg-amber-200 dark:bg-amber-900 text-amber-900 dark:text-amber-200 text-[10px] font-extrabold uppercase">DUP</span>` : ''}
+                        </div>
+
+                        <!-- Times -->
+                        <div class="col-span-4 flex flex-col">
+                            <span class="font-mono font-bold text-sm sm:text-base text-blue-700 dark:text-blue-400 leading-tight">
+                                ${item.elapsedMs > 0 ? item.elapsedFormatted : item.wallTime}
+                            </span>
+                            <span class="font-mono text-[11px] text-slate-500 dark:text-slate-400">
+                                Clock: ${item.wallTime}
+                            </span>
+                        </div>
+
+                        <!-- Actions: Edit & Delete -->
+                        <div class="col-span-2 flex items-center justify-end gap-1">
+                            <button onclick="openEditModal('${item.id}')" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-blue-100 dark:hover:bg-blue-900/50 text-slate-700 dark:text-slate-300" title="Edit Bib">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M15.232 5.232l3.536 3.536m-2.036-5.036a2.5 2.5 0 113.536 3.536L6.5 21.036H3v-3.572L16.732 3.732z"></path></svg>
+                            </button>
+                            <button onclick="deleteFinisher('${item.id}')" class="p-2 rounded-lg bg-slate-100 dark:bg-slate-800 hover:bg-rose-100 dark:hover:bg-rose-900/50 text-rose-600 dark:text-rose-400" title="Delete Entry">
+                                <svg class="w-4 h-4" fill="none" stroke="currentColor" stroke-width="2.2" viewBox="0 0 24 24"><path stroke-linecap="round" stroke-linejoin="round" d="M19 7l-.867 12.142A2 2 0 0116.138 21H7.862a2 2 0 01-1.995-1.858L5 7m5 4v6m4-6v6m1-10V4a1 1 0 00-1-1h-4a1 1 0 00-1 1v3M4 7h16"></path></svg>
+                            </button>
+                        </div>
+                    </div>
+                `;
+            }
+
+            listEl.innerHTML = html;
+        }
+
+        /**
+         * EDIT & DELETE WITH UNDO
+         */
+        function openEditModal(id) {
+            const idx = finishers.findIndex(f => f.id === id);
+            if (idx === -1) return;
+
+            editingId = id;
+            const item = finishers[idx];
+            document.getElementById('edit-modal-subtitle').textContent = `Place #${idx + 1} • Wall Clock: ${item.wallTime}`;
+            const input = document.getElementById('edit-bib-input');
+            input.value = item.bib;
+
+            document.getElementById('modal-edit').classList.remove('hidden');
+            document.getElementById('modal-edit').classList.add('flex');
+            setTimeout(() => input.focus(), 50);
+        }
+
+        function closeEditModal() {
+            editingId = null;
+            document.getElementById('modal-edit').classList.add('hidden');
+            document.getElementById('modal-edit').classList.remove('flex');
+        }
+
+        function saveEditedBib() {
+            if (!editingId) return;
+            const newVal = document.getElementById('edit-bib-input').value.replace(/[^0-9]/g, '').trim();
+            if (!newVal) {
+                showToast('Bib number cannot be empty');
+                return;
+            }
+
+            const idx = finishers.findIndex(f => f.id === editingId);
+            if (idx !== -1) {
+                finishers[idx].bib = newVal;
+                saveFinishers();
+                renderFinishersList();
+                updateBibDisplay();
+                showToast(`Updated Place #${idx + 1} to Bib ${newVal}`);
+            }
+            closeEditModal();
+        }
+
+        function deleteFinisher(id) {
+            const idx = finishers.findIndex(f => f.id === id);
+            if (idx === -1) return;
+
+            const [removed] = finishers.splice(idx, 1);
+            deletedStack.push({ item: removed, index: idx });
+            
+            saveFinishers();
+            renderFinishersList();
+            updateBibDisplay();
+            showToast(`Deleted Bib ${removed.bib} (Tap Undo to restore)`);
+        }
+
+        function undoLastDelete() {
+            if (deletedStack.length === 0) return;
+            const { item, index } = deletedStack.pop();
+            // Re-insert at original position if possible
+            const insertIdx = Math.min(index, finishers.length);
+            finishers.splice(insertIdx, 0, item);
+
+            saveFinishers();
+            renderFinishersList();
+            updateBibDisplay();
+            showToast(`Restored Bib ${item.bib}`);
+        }
+
+        /**
+         * DATA EXPORT (CSV & CLIPBOARD) & CLEAR ALL
+         */
+        function openDataModal() {
+            disarmClearData();
+            document.getElementById('modal-data').classList.remove('hidden');
+            document.getElementById('modal-data').classList.add('flex');
+        }
+
+        function closeDataModal() {
+            document.getElementById('modal-data').classList.add('hidden');
+            document.getElementById('modal-data').classList.remove('flex');
+        }
+
+        function generateCSVString() {
+            const headers = ['Place', 'Bib Number', 'Race Elapsed Time', 'Wall Clock Time', 'ISO Timestamp'];
+            const rows = finishers.map((f, idx) => [
+                idx + 1,
+                `"${f.bib}"`,
+                f.elapsedFormatted,
+                f.wallTime,
+                f.timestamp
+            ]);
+            return [headers.join(','), ...rows.map(r => r.join(','))].join('\n');
+        }
+
+        function exportCSV() {
+            if (finishers.length === 0) {
+                showToast('No finisher data to export');
+                return;
+            }
+            const csvContent = generateCSVString();
+            const blob = new Blob([csvContent], { type: 'text/csv;charset=utf-8;' });
+            const url = URL.createObjectURL(blob);
+            
+            const dateStr = new Date().toISOString().slice(0, 10);
+            const filename = `race-results-${dateStr}.csv`;
+
+            const link = document.createElement('a');
+            link.setAttribute('href', url);
+            link.setAttribute('download', filename);
+            document.body.appendChild(link);
+            link.click();
+            document.body.removeChild(link);
+            URL.revokeObjectURL(url);
+
+            showToast(`Downloaded ${filename}`);
+        }
+
+        function copyResultsToClipboard() {
+            if (finishers.length === 0) {
+                showToast('No finisher data to copy');
+                return;
+            }
+            const csvText = generateCSVString();
+            const textArea = document.createElement('textarea');
+            textArea.value = csvText;
+            textArea.style.position = 'fixed';
+            textArea.style.left = '-9999px';
+            document.body.appendChild(textArea);
+            textArea.select();
+            
+            try {
+                document.execCommand('copy');
+                showToast(`Copied ${finishers.length} results to clipboard!`);
+            } catch (err) {
+                showToast('Unable to copy automatically');
+            }
+            document.body.removeChild(textArea);
+        }
+
+        function armClearData() {
+            document.getElementById('btn-clear-init').classList.add('hidden');
+            document.getElementById('clear-confirm-box').classList.remove('hidden');
+        }
+
+        function disarmClearData() {
+            document.getElementById('btn-clear-init').classList.remove('hidden');
+            document.getElementById('clear-confirm-box').classList.add('hidden');
+        }
+
+        function executeClearAllData() {
+            finishers = [];
+            deletedStack = [];
+            saveFinishers();
+            renderFinishersList();
+            updateBibDisplay();
+            closeDataModal();
+            showToast('All finisher records cleared');
+        }
+
+        /**
+         * LOCALSTORAGE PERSISTENCE & THEME
+         */
+        function saveFinishers() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.FINISHERS, JSON.stringify(finishers));
+            } catch (e) {
+                console.error('Storage error:', e);
+            }
+        }
+
+        function loadFinishers() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.FINISHERS);
+                if (raw) {
+                    finishers = JSON.parse(raw);
+                }
+            } catch (e) {
+                finishers = [];
+            }
+            renderFinishersList();
+        }
+
+        function saveTimerState() {
+            try {
+                localStorage.setItem(STORAGE_KEYS.TIMER, JSON.stringify(timerState));
+            } catch (e) {}
+        }
+
+        function loadTimerState() {
+            try {
+                const raw = localStorage.getItem(STORAGE_KEYS.TIMER);
+                if (raw) {
+                    timerState = JSON.parse(raw);
+                }
+            } catch (e) {}
+            updateTimerUI();
+        }
+
+        function toggleTheme() {
+            const html = document.documentElement;
+            const isDark = html.classList.toggle('dark');
+            localStorage.setItem(STORAGE_KEYS.THEME, isDark ? 'dark' : 'light');
+            updateThemeButton(isDark);
+        }
+
+        function loadTheme() {
+            const saved = localStorage.getItem(STORAGE_KEYS.THEME);
+            // Default to Light / High-Contrast Sunlight mode for outdoor readability
+            const isDark = saved === 'dark';
+            if (isDark) {
+                document.documentElement.classList.add('dark');
+            } else {
+                document.documentElement.classList.remove('dark');
+            }
+            updateThemeButton(isDark);
+        }
+
+        function updateThemeButton(isDark) {
+            document.getElementById('theme-icon').textContent = isDark ? '☀️' : '🌙';
+            document.getElementById('theme-label').textContent = isDark ? 'Sunlight Mode' : 'Dark Mode';
+        }
+
+        /**
+         * OFFLINE SERVICE WORKER REGISTRATION (BLOB WORKER FOR SINGLE-FILE PWA)
+         */
+        function registerOfflineServiceWorker() {
+            if ('serviceWorker' in navigator && window.location.protocol.startsWith('http')) {
+                const swCode = `
+                    const CACHE_NAME = 'bib-recorder-cache-v1';
+                    self.addEventListener('install', (event) => {
+                        self.skipWaiting();
+                    });
+                    self.addEventListener('fetch', (event) => {
+                        event.respondWith(
+                            caches.match(event.request).then((cached) => {
+                                return cached || fetch(event.request).then((response) => {
+                                    return caches.open(CACHE_NAME).then((cache) => {
+                                        cache.put(event.request, response.clone());
+                                        return response;
+                                    });
+                                }).catch(() => cached);
+                            })
+                        );
+                    });
+                `;
+                try {
+                    const blob = new Blob([swCode], { type: 'application/javascript' });
+                    const swUrl = URL.createObjectURL(blob);
+                    navigator.serviceWorker.register(swUrl).catch(() => {});
+                } catch (e) {}
+            }
+        }
+
+        /**
+         * UTILITIES
+         */
+        let toastTimeout = null;
+        function showToast(msg) {
+            const toast = document.getElementById('toast');
+            toast.textContent = msg;
+            toast.classList.remove('opacity-0');
+            clearTimeout(toastTimeout);
+            toastTimeout = setTimeout(() => {
+                toast.classList.add('opacity-0');
+            }, 2600);
+        }
+
+        function escapeHtml(str) {
+            return String(str)
+                .replace(/&/g, '&amp;')
+                .replace(/</g, '&lt;')
+                .replace(/>/g, '&gt;')
+                .replace(/"/g, '&quot;');
+        }
+    </script>
+</body>
+</html>
